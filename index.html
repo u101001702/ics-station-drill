@@ -199,8 +199,6 @@ const BASE_SECTIONS = [
   {id:'log',  name:'後勤組',     en:'Logistics',         c:'log'},
   {id:'fin',  name:'財務行政組', en:'Finance / Admin',   c:'fin'},
 ];
-const PLAN_SUGGEST = ['資源單位','狀況單位','文件單位','復員單位'];
-const FIN_SUGGEST = ['時數紀錄','採購單位','理賠單位','成本單位'];
 const SUGGEST_BY_PARENT = [
   [/醫療站/, ['重症','中症','輕症']],
   [/醫療/, ['檢傷','醫療站','重症','中症','輕症','後送官']],
@@ -231,6 +229,14 @@ const STATION_PHASES = [
    text:'另一間衛生所到站：1 名醫師、3 名護理師、1 名行政人員、1 名替代役。現場民團加入：6 名 EMT、2 名水電後勤。',
    task:'一個人帶得動嗎？怎麼加子組別？水電後勤、替代役和民團 EMT 放在哪裡？'},
 ];
+/* 各階段可用的子分組。沒列到的大組該階段不能加子分組；回顧沿用最後一階段 */
+const STATION_SUBS = [
+  {},
+  {ops:['重中傷組','輕傷組','檢傷組','後送組']},
+  {ops:['重傷','中傷','輕傷','檢傷','後送','留觀','藥局','搬運','警衛'],
+   log:['食水','交通','水電'],
+   plan:['人員管制','災情情蒐']},
+];
 const STATION_DEBRIEF = [
   ['傷患','約 200 名'],['急症外傷','50 名'],['慢性病','150 名'],
   ['第 1 階段累計','5 人'],['第 2 階段累計','9 人'],['第 3 階段累計','23 人'],
@@ -240,7 +246,7 @@ const STATION_DEBRIEF = [
 const SC = {
   key:'ics-station-v1',
   orgs:STATION_ORGS, phases:STATION_PHASES, debrief:STATION_DEBRIEF, types:{med:'醫療衛生',fire:'消防',civ:'民間'},
-  suggest:{ops:['檢傷組','診療組','留觀組','後送組','待命區'], plan:PLAN_SUGGEST, log:['設施單位','補給單位','通訊單位','膳食單位','救災人員醫務'], fin:FIN_SUGGEST},
+  stageSubs:STATION_SUBS,
   ic:'站長', unit:'人', per:'人', useLead:false, longFrom:3,
   intro:'隨著人力陸續進場，把到站的人分配到適合的組別。分配沒有唯一解答。',
   timeNote:'', endBtn:'結束演練，看人力總表', dbfTitle:'回顧：人力總表',
@@ -363,7 +369,7 @@ function feedback(){
   const nodes = allTargets();
   const empty = id => nodes.some(t => t.id === id) && !cardsAt(id).length;
   if(p >= 2 && empty('safety')) out.push('安全官還沒有人。誰在看現場的二次風險？');
-  if(p >= 3 && !nodes.some(t => /待命|集結/.test(t.name))) out.push('人力持續進場，要不要設「待命區」，讓新到的人先報到再派工？');
+  if(SC.askStaging && p >= 3 && !nodes.some(t => /待命|集結/.test(t.name))) out.push('人力持續進場，要不要設「待命區」，讓新到的人先報到再派工？');
   if(p >= 3 && empty('liaison')) out.push('聯絡官還沒有人。這麼多單位，誰當窗口？');
   if(p >= SC.longFrom){
     ['plan','log','fin'].forEach(id => {
@@ -528,7 +534,7 @@ function renderSection(sec){
     h('div',{className:'sec-b'},
       peopleRow(sec.id,''),
       sec.children.map(c => renderSub(c,1)),
-      addBtn(sec.id,'新增子組別'))
+      subsNow(sec.id) ? addBtn(sec.id,'新增子組別') : null)
   );
   return el;
 }
@@ -543,6 +549,11 @@ function renderSub(n, depth){
     peopleRow(n.id,'sub-ppl'),
     (n.children||[]).map(c => renderSub(c,depth+1))
   );
+}
+/* 這個大組目前可用的子分組；null 代表這個階段不開放新增 */
+function subsNow(secId){
+  if(!SC.stageSubs) return SUGGEST[secId] || [];
+  return SC.stageSubs[Math.min(state.phase, SC.stageSubs.length) - 1][secId] || null;
 }
 function addBtn(id,label){
   const b = h('button',{type:'button',className:'add',on:{click:()=>openAdd(id)}});
@@ -648,7 +659,7 @@ function openAdd(parentId){
   const kids = f.node.children || (f.node.children = []);
   const sec = f.parents[0] || f.node;
   let pool = [];
-  if(f.depth === 0) pool = SUGGEST[sec.id] || [];
+  if(f.depth === 0) pool = subsNow(sec.id) || [];
   else {
     const hit = SUGGEST_BY_PARENT.find(([re]) => re.test(f.node.name));
     if(hit) pool = hit[1];
@@ -657,7 +668,7 @@ function openAdd(parentId){
   nameDialog({
     title:'在「'+f.node.name+'」下新增',
     placeholder:'輸入子組別名稱',
-    suggestions: pool.filter(s => !kids.some(k => k.name === s)),
+    suggestions: pool.filter(s => !kids.some(k => k.name.replace(/組$/,'') === s.replace(/組$/,''))),   // 上階段的「檢傷組」算已有「檢傷」
     okText:'新增',
     validate:name => dup(name),
     onOk:name => kids.push({id:newId(), name, children:[]}),
