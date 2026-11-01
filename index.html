@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ICS 分組演練</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f3ef;--card:#fff;--ink:#23221f;--muted:#6b6962;--line:#dcd9d0;
+  --ic:#534AB7;--ic-bg:#EEEDFE;
+  --staff:#5F5E5A;--staff-bg:#F1EFE8;
+  --ops:#B5451F;--ops-bg:#FAECE7;
+  --plan:#0F6E56;--plan-bg:#E1F5EE;
+  --log:#185FA5;--log-bg:#E6F1FB;
+  --fin:#8A6100;--fin-bg:#FBF1D6;
+  --t-fire:#C8341C;--t-med:#0F8A6B;--t-police:#2456B3;--t-mil:#5B7031;--t-rail:#7A4FB0;--t-gov:#3E4A59;--t-civ:#C98A00;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.45;font-size:16px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none;touch-action:manipulation}
+:focus-visible{outline:2px solid var(--ic);outline-offset:2px}
+
+.pg{max-width:1180px;margin:0 auto;padding:18px 16px calc(40px + env(safe-area-inset-bottom))}
+.hdr{margin-bottom:16px}
+.hdr h1{font-size:21px;font-weight:700;letter-spacing:.02em}
+.hdr p{font-size:14px;color:var(--muted);margin-top:3px}
+
+.lbl{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 7px 2px}
+.stem{width:2px;height:14px;background:var(--line);margin:0 auto}
+
+.ic{display:flex;align-items:center;gap:6px;max-width:420px;margin:0 auto;padding:10px 6px 10px 16px;
+  background:var(--ic-bg);border:1.5px solid var(--ic);border-radius:12px;color:var(--ic)}
+.ic .tx{flex:1;min-width:0}
+.name{font-weight:700;overflow-wrap:anywhere}
+.en{font-size:12px;opacity:.75}
+
+.staff-wrap{border:1.5px dashed var(--line);border-radius:12px;padding:10px}
+.staff{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.st{position:relative;background:var(--staff-bg);border-radius:10px;padding:9px 6px 6px;text-align:center;
+  color:var(--staff);min-width:0;display:flex;flex-direction:column;align-items:center}
+.st .name{font-size:15px}
+.st .acts{margin-top:2px}
+
+.sections{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+@media(min-width:720px){.sections{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1080px){.sections{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.sec{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;overflow:hidden}
+.sec-h{display:flex;align-items:center;gap:4px;padding:9px 6px 9px 14px;background:var(--cb);color:var(--c)}
+.sec-h .tx{flex:1;min-width:0}
+.sec-h .name{font-size:17px}
+.sec-b{padding:8px 10px 10px}
+
+.acts{display:flex;flex:none}
+.ib{width:40px;height:40px;display:grid;place-items:center;border-radius:8px;color:inherit;opacity:.72}
+.ib:hover{background:rgba(0,0,0,.07);opacity:1}
+.ib:active{background:rgba(0,0,0,.12)}
+.ib svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.st .ib{width:36px;height:36px}
+
+.sub{border-left:2px solid var(--c);margin:4px 0 4px 2px}
+.sub-row{display:flex;align-items:center;gap:2px;padding-left:10px;min-height:42px}
+.sub-row .name{flex:1;min-width:0;font-weight:500;font-size:15px}
+.sub .sub{margin-left:10px}
+.add{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;min-height:42px;margin-top:4px;
+  border:1.5px dashed var(--c);border-radius:8px;color:var(--c);font-size:14px;font-weight:600}
+.add:hover{background:var(--cb)}
+
+.restore{margin-top:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:40px;padding:6px 13px;border:1px solid var(--line);border-radius:20px;background:var(--card);font-size:14px}
+.chip:hover{border-color:var(--ic);color:var(--ic)}
+
+.tray{background:var(--card);border:1.5px solid var(--ink);border-radius:12px;padding:11px 12px 12px;margin-bottom:14px}
+.tray-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}
+.tray-h b{font-size:16px}
+.tray-h span{font-size:13px;color:var(--muted)}
+.tray-list{max-height:300px;overflow-y:auto;overscroll-behavior:contain}
+.org{padding:6px 0 8px;border-top:1px solid var(--line)}
+.org:first-child{border-top:none;padding-top:0}
+.org-h{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;font-size:14px;font-weight:600}
+.org-all{flex:none;min-height:36px;padding:0 10px;border-radius:8px;font-size:13px;color:var(--ic);font-weight:600}
+.org-all:hover{background:var(--ic-bg)}
+.org-cards{display:flex;flex-wrap:wrap;gap:6px}
+.p b{flex:none;font-size:11px;font-weight:700;color:var(--ic)}
+
+.scn{background:var(--ink);color:#fff;border-radius:12px;padding:13px 14px 12px;margin-bottom:12px}
+.scn-t{font-size:13px;color:#d8d5cb}
+.scn h2{font-size:18px;font-weight:700;margin:2px 0 6px}
+.scn p{font-size:15px}
+.scn .task{margin-top:9px;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.12);font-weight:600}
+.next{width:100%;min-height:46px;margin-top:10px;border-radius:10px;background:#FFD27A;color:#2b2a27;font-weight:700}
+.scn .rev{font-size:13px;color:#FFD27A;margin-bottom:6px}
+.stages{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;margin:0 -16px 10px;
+  padding:8px 16px;background:var(--bg)}
+.stages>span{flex:none;font-size:13px;font-weight:600;color:var(--muted)}
+.stg{flex:1;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:9px;background:var(--card);font-size:15px;font-weight:600}
+.stg.wide{flex:1.5}
+.stg:hover:enabled{border-color:var(--ink)}
+.stg.cur{background:var(--ink);border-color:var(--ink);color:#fff}
+.stg:disabled{opacity:.4;cursor:default}
+
+.fb{background:#FFF8E6;border:1px solid #E8C468;border-radius:12px;padding:10px 13px;margin-bottom:12px}
+.fb-h{font-size:14px;font-weight:700;margin-bottom:4px}
+.fb li{list-style:none;font-size:14px;padding:4px 0 4px 16px;position:relative}
+.fb li::before{content:"";position:absolute;left:2px;top:12px;width:7px;height:7px;border-radius:50%;background:#C98A00}
+.fb.ok{background:#E1F5EE;border-color:#8CCFB8}
+.fb-src{font-size:12px;color:var(--muted);margin-top:4px}
+
+.dbf{background:var(--card);border:1.5px solid var(--ink);border-radius:12px;padding:13px 14px;margin-bottom:12px}
+.dbf h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.dbf>p{font-size:14px;color:var(--muted);margin-bottom:8px}
+.dbf dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;font-size:15px}
+.dbf dt{color:var(--muted)}
+.dbf dd{font-weight:600}
+.tray-done{font-size:14px;color:var(--muted)}
+.tray-note{font-size:12px;color:var(--muted);margin-top:8px}
+
+.p{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:5px 11px 5px 9px;border:1px solid var(--line);
+  border-radius:9px;background:#fff;color:var(--ink);font-size:14px;font-weight:500;text-align:left;max-width:100%}
+.p:hover{border-color:var(--ink)}
+.p i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--t)}
+.ppl{display:flex;flex-wrap:wrap;gap:5px;padding:2px 0 6px}
+.sub-ppl{padding:0 6px 6px 10px}
+.ic-ppl{max-width:420px;margin:7px auto 0;justify-content:center;padding:0}
+.st .ppl{justify-content:center;padding:4px 0 0}
+.st .p{font-size:13px;padding:4px 8px 4px 7px}
+
+.legend{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:8px;height:8px;border-radius:50%;background:var(--t)}
+
+.tgts{display:flex;flex-direction:column;gap:2px;max-height:52vh;overflow-y:auto;margin-top:8px;overscroll-behavior:contain}
+.tgts:focus{outline:none}
+.tgt{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:6px 12px;border-radius:8px;text-align:left;font-size:15px}
+.tgt:hover{background:var(--bg)}
+.tgt.top{font-weight:700}
+.tgt.cur{background:var(--ic-bg);color:var(--ic)}
+.tgt em{font-style:normal;font-size:13px;color:var(--muted);flex:none}
+.back{width:100%;min-height:44px;margin-top:8px;border:1.5px dashed var(--line);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted)}
+
+.foot{margin-top:24px;text-align:center}
+.ghost{min-height:42px;padding:6px 14px;font-size:14px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+dialog{margin:auto auto 0;width:100%;max-width:480px;border:none;border-radius:16px 16px 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom));background:var(--card);color:var(--ink)}
+@media(min-width:720px){dialog{margin:auto;border-radius:16px}}
+dialog::backdrop{background:rgba(25,24,20,.45)}
+dialog h2{font-size:18px;font-weight:700;margin-bottom:12px}
+dialog p.msg{font-size:15px;color:var(--muted);margin-bottom:6px}
+dialog input{width:100%;font-size:16px;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+dialog input:focus{outline:none;border-color:var(--ic)}
+.err{min-height:20px;font-size:13px;color:#B3261E;margin-top:4px}
+.sug-l{font-size:13px;color:var(--muted);margin:6px 0 7px}
+.btns{display:flex;gap:8px;margin-top:14px}
+.btn{flex:1;min-height:46px;border-radius:10px;border:1px solid var(--line);font-weight:600;background:var(--card)}
+.btn.pri{background:var(--ic);border-color:var(--ic);color:#fff}
+.btn.dng{background:#B3261E;border-color:#B3261E;color:#fff}
+
+.toast{position:fixed;left:50%;transform:translate(-50%,16px);bottom:calc(18px + env(safe-area-inset-bottom));
+  width:calc(100% - 32px);max-width:420px;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 15px;
+  background:#2b2a27;color:#fff;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.2s}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast span{flex:1;min-width:0;overflow-wrap:anywhere}
+.toast button{min-height:40px;padding:0 10px;color:#FFD27A;font-weight:700;flex:none}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<main class="pg">
+  <header class="hdr">
+    <h1>ICS 分組演練</h1>
+    <p>隨著事故發展，把陸續報到的單位分配到適合的組別。分配沒有唯一解答。</p>
+  </header>
+  <div id="app"></div>
+</main>
+
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const MAX_DEPTH = 5;   // 大組以下最多五層，再深手機上放不下
+const MAX_NAME = 20;
+
+const BASE_STAFF = [
+  {id:'safety',  name:'安全官', en:'Safety Officer'},
+  {id:'liaison', name:'聯絡官', en:'Liaison Officer'},
+  {id:'pio',     name:'媒體官', en:'Public Information'},
+];
+const BASE_SECTIONS = [
+  {id:'ops',  name:'執行組',     en:'Operations',        c:'ops'},
+  {id:'plan', name:'計劃組',     en:'Planning',          c:'plan'},
+  {id:'log',  name:'後勤組',     en:'Logistics',         c:'log'},
+  {id:'fin',  name:'財務行政組', en:'Finance / Admin',   c:'fin'},
+];
+const PLAN_SUGGEST = ['資源單位','狀況單位','文件單位','復員單位'];
+const FIN_SUGGEST = ['時數紀錄','採購單位','理賠單位','成本單位'];
+const SUGGEST_BY_PARENT = [
+  [/醫療站/, ['重症','中症','輕症']],
+  [/醫療/, ['檢傷','醫療站','重症','中症','輕症','後送官']],
+  [/搜救/, ['搜索組','救援組']],
+  [/搜索組/, ['搜索一組','搜索二組','搜索三組']],
+  [/救援組/, ['救援一組','救援二組','救援三組']],
+];
+
+/* 緊急醫療站情境：1 張卡＝1 個人。沒有指定主管，由學員自己決定誰帶隊 */
+const STATION_ORGS = [
+  {id:'hc1', name:'衛生所', t:'med', phase:1, src:'教學設定：第 1 階段進場', roles:[
+    ['衛生所醫師'], ['衛生所護理師 A'], ['衛生所護理師 B'], ['衛生所護理師 C'], ['行政人員兼司機'] ]},
+  {id:'usar', name:'特搜隊醫療組', t:'fire', phase:2, src:'教學設定：第 2 階段進場', roles:[
+    ['特搜隊醫師'], ['特搜隊護理師'], ['特搜隊 EMT-P 甲'], ['特搜隊 EMT-P 乙'] ]},
+  {id:'hc2', name:'另一間衛生所', t:'med', phase:3, src:'教學設定：第 3 階段進場', roles:[
+    ['支援衛生所醫師'], ['支援衛生所護理師 A'], ['支援衛生所護理師 B'], ['支援衛生所護理師 C'], ['支援衛生所行政人員'], ['替代役'] ]},
+  {id:'ngo', name:'現場民團', t:'civ', phase:3, src:'教學設定：第 3 階段進場', roles:[
+    ['民團 EMT 1'], ['民團 EMT 2'], ['民團 EMT 3'], ['民團 EMT 4'], ['民團 EMT 5'], ['民團 EMT 6'], ['水電後勤 1'], ['水電後勤 2'] ]},
+];
+const STATION_PHASES = [
+  {time:'累計 5 人', title:'一開始只有衛生所',
+   text:'風災過後，村落變成孤島，約 200 名傷患，其中急症外傷 50 名、慢性病 150 名。緊急醫療站開設，一開始只有衛生所的人力：約 1 名醫師、3 名護理師、1 名行政人員兼司機。',
+   task:'5 個人面對約 200 名傷患，怎麼分工？誰當站長？真的需要開全部的組嗎？'},
+  {time:'累計 9 人', title:'特搜隊醫療組加入',
+   text:'特搜隊醫療組到站：1 名醫師、1 名護理師、2 名 EMT-P。',
+   task:'站長要不要交接？兩個單位的人，怎麼併進同一個架構？急症外傷和慢性病要不要分開處理？'},
+  {time:'累計 23 人', title:'另一間衛生所與現場民團加入',
+   text:'另一間衛生所到站：1 名醫師、3 名護理師、1 名行政人員、1 名替代役。現場民團加入：6 名 EMT、2 名水電後勤。',
+   task:'一個人帶得動嗎？怎麼加子組別？水電後勤、替代役和民團 EMT 放在哪裡？'},
+];
+const STATION_DEBRIEF = [
+  ['傷患','約 200 名'],['急症外傷','50 名'],['慢性病','150 名'],
+  ['第 1 階段累計','5 人'],['第 2 階段累計','9 人'],['第 3 階段累計','23 人'],
+  ['醫師','3 人'],['護理師','7 人'],['EMT-P','2 人'],['EMT','6 人'],['行政人員','2 人'],['替代役','1 人'],['水電後勤','2 人'],
+  ['指引最低人力','白班 13 人、夜班 4 人'],
+];
+const SC = {
+  key:'ics-station-v1',
+  orgs:STATION_ORGS, phases:STATION_PHASES, debrief:STATION_DEBRIEF, types:{med:'醫療衛生',fire:'消防',civ:'民間'},
+  suggest:{ops:['檢傷組','診療組','留觀組','後送組','待命區'], plan:PLAN_SUGGEST, log:['設施單位','補給單位','通訊單位','膳食單位','救災人員醫務'], fin:FIN_SUGGEST},
+  ic:'站長', unit:'人', per:'人', useLead:false, longFrom:3,
+  intro:'隨著人力陸續進場，把到站的人分配到適合的組別。分配沒有唯一解答。',
+  timeNote:'', endBtn:'結束演練，看人力總表', dbfTitle:'回顧：人力總表',
+  dbfText:'這些人力，你的架構撐得起約 200 名傷患嗎？指引最低人力出自衛福部《急救站設置參考指引》第二版。',
+  trayNote:'1 張卡＝1 個人。傷患數與人力為情境設定。',
+};
+const KEY = SC.key, ORGS = SC.orgs, PHASES = SC.phases, DEBRIEF = SC.debrief, TYPE_NAME = SC.types, SUGGEST = SC.suggest, UNIT = SC.unit;
+const ROSTER = ORGS.flatMap(o => o.roles.map(([name,opt={}],i) => ({
+  id:o.id+'-'+i, name, org:o.id, t:o.t, lead:!!opt.lead, phase:opt.phase||o.phase,
+  src:o.src + (opt.real || o.src.startsWith('教學設定') ? '' : '；角色為教學設定'),
+})));
+
+const ICON = {
+  edit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
+  add:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  del:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+};
+
+let uid = 0;
+const newId = () => 'n' + Date.now().toString(36) + (uid++);
+
+function defaults(){
+  return {
+    icName:SC.ic,
+    staff: BASE_STAFF.map(s => ({id:s.id, name:s.name})),
+    sections: BASE_SECTIONS.map(s => ({id:s.id, name:s.name, children:[]})),
+    people: {},   // 單位卡 id → 所在組別 id 陣列（可一人兼多職）；沒有資料就是還在報到區
+    phase: 1,     // 走完所有階段後的下一號是回顧
+    saved: {},    // 其他階段留下的架構與分配，回到該階段時取回
+  };
+}
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if(d && typeof d.icName === 'string' && Array.isArray(d.staff) && Array.isArray(d.sections)){
+      d.people = d.people || {};
+      d.phase = d.phase || 1;
+      d.saved = d.saved || {};
+      // 舊存檔一張卡只有一個位置，轉成陣列
+      [d, ...Object.values(d.saved)].forEach(s => {
+        for(const cid in s.people||{}) if(typeof s.people[cid] === 'string') s.people[cid] = [s.people[cid]];
+      });
+      return d;
+    }
+  }catch(e){}
+  return defaults();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+let state = load();
+
+/* ---------- 小工具 ---------- */
+function h(tag, props, ...kids){
+  const el = document.createElement(tag);
+  for(const k in props||{}){
+    if(k === 'on') for(const ev in props.on) el.addEventListener(ev, props.on[ev]);
+    else if(k === 'style') el.style.cssText = props.style;
+    else if(k.startsWith('aria') || k === 'role') el.setAttribute(k.replace('aria','aria-').toLowerCase(), props[k]);
+    else el[k] = props[k];
+  }
+  kids.flat().forEach(c => c != null && el.append(c));
+  return el;
+}
+function iconBtn(kind, label, fn){
+  const b = h('button', {type:'button', className:'ib', title:label, ariaLabel:label, on:{click:fn}});
+  b.innerHTML = ICON[kind];
+  return b;
+}
+function findNode(id, list, depth, parents){
+  for(const n of list){
+    if(n.id === id) return {node:n, list, depth, parents};
+    const r = findNode(id, n.children||[], depth+1, parents.concat(n));
+    if(r) return r;
+  }
+  return null;
+}
+function find(id){ return findNode(id, state.sections, 0, []) || findNode(id, state.staff, 0, []); }
+function countSubs(n){ return (n.children||[]).reduce((s,c) => s + 1 + countSubs(c), 0); }
+
+/* 所有可分配的位置，依畫面順序攤平 */
+function allTargets(){
+  const out = [{id:'ic', name:state.icName, depth:0}];
+  state.staff.forEach(s => out.push({id:s.id, name:s.name, depth:0}));
+  const walk = (n,d) => { out.push({id:n.id, name:n.name, depth:d}); (n.children||[]).forEach(c => walk(c,d+1)); };
+  state.sections.forEach(s => walk(s,0));
+  return out;
+}
+const posOf = cid => state.people[cid] || [];
+const cardsAt = id => ROSTER.filter(c => posOf(c.id).includes(id));
+const arrived = () => ROSTER.filter(c => c.phase <= state.phase);
+const pending = () => arrived().filter(c => !posOf(c.id).length);
+
+function cardBtn(c){
+  return h('button',{type:'button',className:'p',style:`--t:var(--t-${c.t})`,
+    ariaLabel:`${c.name}（${TYPE_NAME[c.t]}${c.lead?'，主管級':''}）`,on:{click:()=>openAssign([c.id])}},
+    h('i'), c.name, c.lead ? h('b',{textContent:'主管'}) : null,
+    posOf(c.id).length > 1 ? h('b',{textContent:'兼 '+posOf(c.id).length}) : null);
+}
+
+/* 自動回饋：只提醒，不打分。管理幅度依 FEMA IS-200：3–7 人，最佳 5 人。
+   第 1 階段不提示主管級：只有 3 名第一線人員，本來就要先有人暫代指揮 */
+function feedback(){
+  const out = [];
+  const leaders = cardsAt('ic');
+  if(!leaders.length) out.push(`還沒有${SC.ic}。現場必須有人負責指揮，即使只是暫時的。`);
+  else if(leaders.length > 1) out.push(`${SC.ic}放了 ${leaders.length} ${UNIT}。若不是聯合指揮，應只有一位${SC.ic}。`);
+  else if(SC.useLead && state.phase > 1 && !leaders[0].lead) out.push(`「${leaders[0].name}」不是主管級，到場的主管要不要接手？`);
+
+  const walk = (n, covered) => {   // covered：上層組別已有主管（事故指揮官不算，否則有指揮官就永遠不提醒）
+    const cards = cardsAt(n.id), kids = n.children || [];
+    const hasLead = cards.some(c => c.lead);
+    const span = cards.length - (hasLead ? 1 : 0) + kids.length;
+    if(span > 7) out.push(`「${n.name}」直接帶 ${span} ${UNIT}，超過 7 ${SC.per}。可以加子組別分擔。`);
+    if(SC.useLead && state.phase > 1 && cards.length && !hasLead && !covered) out.push(`「${n.name}」有 ${cards.length} 個單位，但這一組和上層都沒有主管級人員。`);
+    kids.forEach(k => walk(k, covered || hasLead));
+  };
+  state.sections.forEach(s => walk(s, false));
+
+  const p = state.phase;
+  const nodes = allTargets();
+  const empty = id => nodes.some(t => t.id === id) && !cardsAt(id).length;
+  if(p >= 2 && empty('safety')) out.push('安全官還沒有人。誰在看現場的二次風險？');
+  if(p >= 3 && !nodes.some(t => /待命|集結/.test(t.name))) out.push('人力持續進場，要不要設「待命區」，讓新到的人先報到再派工？');
+  if(p >= 3 && empty('liaison')) out.push('聯絡官還沒有人。這麼多單位，誰當窗口？');
+  if(p >= SC.longFrom){
+    ['plan','log','fin'].forEach(id => {
+      const base = BASE_SECTIONS.find(b => b.id === id);
+      if(!nodes.some(t => t.id === id)) out.push(`長時間作業沒有「${base.name}」，它的工作由誰承擔？`);
+      else if(!cardsAt(id).length && !countSubs(state.sections.find(s => s.id === id))) out.push(`「${base.name}」還沒有人，長時間作業會需要它。`);
+    });
+  }
+  const left = pending().length;
+  if(left) out.push(`還有 ${left} ${UNIT}在報到區等待分配。`);
+  return out;
+}
+function renderFeedback(){
+  const list = feedback();
+  if(!list.length) return h('section',{className:'fb ok',ariaLabel:'自動提示'},
+    h('p',{className:'fb-h',textContent:'目前沒有提示。'}),
+    h('p',{className:'fb-src',textContent:'這不代表答案正確，和同學比較看看彼此的分配。'}));
+  return h('section',{className:'fb',ariaLabel:'自動提示'},
+    h('p',{className:'fb-h',textContent:`提示（${list.length}）`}),
+    h('ul',{}, list.map(t => h('li',{textContent:t}))),
+    h('p',{className:'fb-src',textContent:'管理幅度依 FEMA IS-200：3–7 人，最佳 5 人。'}));
+}
+function renderScenario(){
+  if(state.phase > PHASES.length) return h('section',{className:'dbf'},
+    h('h2',{textContent:SC.dbfTitle}),
+    h('p',{textContent:SC.dbfText}),
+    h('dl',{}, DEBRIEF.flatMap(([k,v]) => [h('dt',{textContent:k}), h('dd',{textContent:v})])));
+  const ph = PHASES[state.phase-1];
+  const last = state.phase === PHASES.length;
+  return h('section',{className:'scn',ariaLabel:'事故狀況'},
+    state.saved[state.phase+1] ? h('p',{className:'rev',textContent:'正在回看：這是這個階段當時的架構，在這裡修改不會影響後面的階段。'}) : null,
+    h('div',{className:'scn-t',textContent:`第 ${state.phase} 階段｜${ph.time}${SC.timeNote}`}),
+    h('h2',{textContent:ph.title}),
+    h('p',{textContent:ph.text}),
+    h('p',{className:'task',textContent:ph.task}),
+    h('button',{type:'button',className:'next',textContent:last ? SC.endBtn : '進入下一階段',
+      on:{click:()=>goPhase(state.phase+1)}}));
+}
+/* 階段切換列：走過的階段都能點；還沒到的鎖住，避免提前看到後面的情境與真實數字 */
+function renderStages(){
+  const total = PHASES.length + 1;
+  return h('nav',{className:'stages',ariaLabel:'切換階段'},
+    h('span',{textContent:'階段'}),
+    Array.from({length:total}, (_,i) => {
+      const p = i + 1, cur = p === state.phase, debrief = p === total;
+      return h('button',{type:'button',className:'stg'+(cur?' cur':'')+(debrief?' wide':''),
+        textContent: debrief ? '回顧' : String(p),
+        ariaLabel: debrief ? '回顧' : `第 ${p} 階段`,
+        disabled: !cur && !state.saved[p],
+        ...(cur ? {ariaCurrent:'step'} : {}),
+        on:{click:()=>goPhase(p)}});
+    }));
+}
+/* 每個階段各留一份架構：離開時存起來，回來時取回。第一次進入的階段沿用目前的架構 */
+function goPhase(p){
+  if(p === state.phase) return;
+  hideToast();
+  const {phase, saved, ...work} = state;
+  const before = pending().length;
+  saved[phase] = JSON.parse(JSON.stringify(work));
+  const first = !saved[p];
+  if(!first){ Object.assign(state, saved[p]); delete saved[p]; }
+  state.phase = p;
+  commit();
+  scrollTo(0,0);
+  const fresh = pending().length - before;
+  if(first && fresh > 0) toast(`新報到 ${fresh} ${UNIT}`);
+}
+function peopleRow(id, cls){
+  const cards = cardsAt(id);
+  return cards.length ? h('div',{className:'ppl '+cls}, cards.map(cardBtn)) : null;
+}
+function renderTray(){
+  const left = pending();
+  return h('section',{className:'tray',ariaLabel:'報到區'},
+    h('div',{className:'tray-h'},
+      h('b',{textContent:'報到區'}),
+      h('span',{textContent:`待分配 ${left.length}／已報到 ${arrived().length} ${UNIT}`})),
+    left.length ? h('div',{className:'tray-list',id:'trayList'}, ORGS.map(o => {
+        const cards = left.filter(c => c.org === o.id);
+        if(!cards.length) return null;
+        return h('div',{className:'org'},
+          h('div',{className:'org-h'},
+            h('span',{textContent:o.name}),
+            cards.length > 1 ? h('button',{type:'button',className:'org-all',textContent:'整批分配',
+              ariaLabel:`整批分配${o.name}`,on:{click:()=>openAssign(cards.map(c=>c.id),o.name)}}) : null),
+          h('div',{className:'org-cards'}, cards.map(cardBtn)));
+      }))
+                : h('p',{className:'tray-done',textContent:'目前到場的單位都分配完了。'}),
+    h('div',{className:'legend'}, Object.keys(TYPE_NAME).map(t =>
+      h('span',{style:`--t:var(--t-${t})`}, h('i'), TYPE_NAME[t]))),
+    h('p',{className:'tray-note',textContent:SC.trayNote}));
+}
+
+/* ---------- 畫面 ---------- */
+function render(){
+  const app = document.getElementById('app');
+  const trayScroll = document.getElementById('trayList')?.scrollTop || 0;
+  app.replaceChildren();
+
+  app.append(renderStages());
+  app.append(renderScenario());
+  app.append(renderFeedback());
+  app.append(renderTray());
+  const tl = document.getElementById('trayList');
+
+  app.append(h('div', {className:'ic'},
+    h('div', {className:'tx'},
+      h('div', {className:'name', textContent:state.icName}),
+      h('div', {className:'en', textContent:'Incident Commander'})),
+    h('div', {className:'acts'}, iconBtn('edit',`更改${SC.ic}名稱`, () => openRenameIC()))
+  ));
+  const icp = peopleRow('ic','ic-ppl');
+  if(icp) app.append(icp);
+
+  if(state.staff.length){
+    app.append(h('div',{className:'stem'}));
+    app.append(h('div',{className:'staff-wrap'},
+      h('p',{className:'lbl',textContent:'指揮幕僚'}),
+      h('div',{className:'staff'}, state.staff.map(s =>
+        h('div',{className:'st'},
+          h('div',{className:'name',textContent:s.name}),
+          h('div',{className:'acts'},
+            iconBtn('edit','更改「'+s.name+'」名稱', () => openRename(s.id)),
+            iconBtn('del','刪除「'+s.name+'」', () => remove(s.id))),
+          peopleRow(s.id,'')
+        )))
+    ));
+  }
+
+  app.append(h('div',{className:'stem'}));
+  app.append(h('div',{className:'sections'}, state.sections.map(renderSection)));
+
+  const gone = [
+    ...BASE_STAFF.filter(b => !state.staff.some(s => s.id === b.id)),
+    ...BASE_SECTIONS.filter(b => !state.sections.some(s => s.id === b.id)),
+  ];
+  if(gone.length){
+    app.append(h('div',{className:'restore'},
+      h('p',{className:'lbl',textContent:'已刪除，需要時可加回'}),
+      h('div',{className:'chips'}, gone.map(b =>
+        h('button',{type:'button',className:'chip',textContent:'＋ '+b.name,on:{click:()=>restore(b.id)}})))
+    ));
+  }
+
+  app.append(h('div',{className:'foot'},
+    h('button',{type:'button',className:'ghost',textContent:'全部重來',on:{click:openReset}})));
+
+  if(tl) tl.scrollTop = trayScroll;
+}
+
+function renderSection(sec){
+  const base = BASE_SECTIONS.find(b => b.id === sec.id);
+  const el = h('section',{className:'sec',style:`--c:var(--${base.c});--cb:var(--${base.c}-bg)`},
+    h('div',{className:'sec-h'},
+      h('div',{className:'tx'},
+        h('div',{className:'name',textContent:sec.name}),
+        h('div',{className:'en',textContent:base.en})),
+      h('div',{className:'acts'},
+        iconBtn('edit','更改「'+sec.name+'」名稱',()=>openRename(sec.id)),
+        iconBtn('del','刪除「'+sec.name+'」',()=>remove(sec.id)))),
+    h('div',{className:'sec-b'},
+      peopleRow(sec.id,''),
+      sec.children.map(c => renderSub(c,1)),
+      addBtn(sec.id,'新增子組別'))
+  );
+  return el;
+}
+function renderSub(n, depth){
+  return h('div',{className:'sub'},
+    h('div',{className:'sub-row'},
+      h('div',{className:'name',textContent:n.name}),
+      h('div',{className:'acts'},
+        depth < MAX_DEPTH ? iconBtn('add','在「'+n.name+'」下新增',()=>openAdd(n.id)) : null,
+        iconBtn('edit','更改「'+n.name+'」名稱',()=>openRename(n.id)),
+        iconBtn('del','刪除「'+n.name+'」',()=>remove(n.id)))),
+    peopleRow(n.id,'sub-ppl'),
+    (n.children||[]).map(c => renderSub(c,depth+1))
+  );
+}
+function addBtn(id,label){
+  const b = h('button',{type:'button',className:'add',on:{click:()=>openAdd(id)}});
+  b.append('＋ '+label);
+  return b;
+}
+
+/* ---------- 動作 ---------- */
+function commit(){ save(); render(); }
+
+function remove(id){
+  const snap = JSON.stringify(state);
+  const f = find(id);
+  if(!f) return;
+  f.list.splice(f.list.indexOf(f.node),1);
+  // 組別刪掉後，裡面的單位回到報到區
+  const alive = new Set(allTargets().map(t => t.id));
+  let back = 0;
+  for(const cid in state.people){
+    state.people[cid] = posOf(cid).filter(p => alive.has(p));
+    if(!state.people[cid].length){ delete state.people[cid]; back++; }
+  }
+  commit();
+  const n = countSubs(f.node);
+  toast('已刪除「'+f.node.name+'」'+(n ? '（含 '+n+' 個子組別）' : '')+(back ? '，'+back+' '+UNIT+'回報到區' : ''),
+    () => { state = JSON.parse(snap); commit(); });
+}
+function assign(ids, nodeId){
+  ids.forEach(id => {
+    if(!nodeId) delete state.people[id];
+    else if(!posOf(id).includes(nodeId)) state.people[id] = [...posOf(id), nodeId];
+  });
+  closeDlg(); commit();
+}
+/* 個別分配時可複選：點一下加入、再點一下取消，按完成才關閉 */
+function togglePos(id, nodeId){
+  const keep = dlg.querySelector('.tgts')?.scrollTop || 0;
+  const cur = posOf(id);
+  state.people[id] = cur.includes(nodeId) ? cur.filter(p => p !== nodeId) : [...cur, nodeId];
+  if(!state.people[id].length) delete state.people[id];
+  commit();
+  openAssign([id]);
+  dlg.querySelector('.tgts').scrollTop = keep;
+}
+function restore(id){
+  const st = BASE_STAFF.find(b => b.id === id);
+  const [base, list, cat] = st ? [st, state.staff, BASE_STAFF]
+                               : [BASE_SECTIONS.find(b => b.id === id), state.sections, BASE_SECTIONS];
+  const item = st ? {id, name:base.name} : {id, name:base.name, children:[]};
+  // 依原本順序放回
+  const order = cat.map(b => b.id);
+  const at = list.findIndex(x => order.indexOf(x.id) > order.indexOf(id));
+  list.splice(at < 0 ? list.length : at, 0, item);
+  commit();
+}
+
+let toastTimer;
+function toast(text, undo){
+  const t = document.getElementById('toast');
+  t.replaceChildren(h('span',{textContent:text}));
+  if(undo) t.append(h('button',{type:'button',textContent:'復原',on:{click:()=>{undo();hideToast();}}}));
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 6000);
+}
+function hideToast(){ document.getElementById('toast').classList.remove('show'); }
+
+/* ---------- 對話框 ---------- */
+const dlg = document.getElementById('dlg');
+function closeDlg(){ dlg.close(); }
+dlg.addEventListener('click', e => { if(e.target === dlg) closeDlg(); });
+
+function nameDialog({title, value='', placeholder, suggestions=[], okText, onOk, onAddAll, validate}){
+  const input = h('input',{type:'text',value,placeholder,maxLength:MAX_NAME,autocomplete:'off',ariaLabel:'名稱'});
+  const err = h('div',{className:'err',role:'alert'});
+  const submit = v => {
+    const name = v.trim();
+    const problem = !name ? '請輸入名稱' : validate(name);
+    if(problem){ err.textContent = problem; input.focus(); return; }
+    onOk(name); closeDlg(); commit();
+  };
+  const form = h('form',{method:'dialog',on:{submit:e=>{e.preventDefault();submit(input.value);}}},
+    h('h2',{textContent:title}), input, err,
+    suggestions.length ? h('p',{className:'sug-l',textContent:'常見選項（點一下直接加入）'}) : null,
+    suggestions.length ? h('div',{className:'chips'}, suggestions.map(s =>
+      h('button',{type:'button',className:'chip',textContent:s,on:{click:()=>submit(s)}}))) : null,
+    suggestions.length > 1 ? h('button',{type:'button',className:'back',textContent:`全部加入（${suggestions.length} 個）`,
+      on:{click:()=>{ onAddAll(suggestions); closeDlg(); commit(); }}}) : null,
+    h('div',{className:'btns'},
+      h('button',{type:'button',className:'btn',textContent:'取消',on:{click:closeDlg}}),
+      h('button',{type:'submit',className:'btn pri',textContent:okText}))
+  );
+  dlg.replaceChildren(form);
+  dlg.showModal();
+  if(value) input.select();
+}
+
+const siblingsOf = list => (name, self) =>
+  list.some(n => n !== self && n.name === name) ? '同一層已經有「'+name+'」了' : '';
+
+function openAdd(parentId){
+  const f = find(parentId);
+  const kids = f.node.children || (f.node.children = []);
+  const sec = f.parents[0] || f.node;
+  let pool = [];
+  if(f.depth === 0) pool = SUGGEST[sec.id] || [];
+  else {
+    const hit = SUGGEST_BY_PARENT.find(([re]) => re.test(f.node.name));
+    if(hit) pool = hit[1];
+  }
+  const dup = siblingsOf(kids);
+  nameDialog({
+    title:'在「'+f.node.name+'」下新增',
+    placeholder:'輸入子組別名稱',
+    suggestions: pool.filter(s => !kids.some(k => k.name === s)),
+    okText:'新增',
+    validate:name => dup(name),
+    onOk:name => kids.push({id:newId(), name, children:[]}),
+    onAddAll:names => names.forEach(name => kids.push({id:newId(), name, children:[]})),
+  });
+}
+function openRename(id){
+  const f = find(id);
+  const dup = siblingsOf(f.list);
+  nameDialog({
+    title:'更改名稱',
+    value:f.node.name,
+    okText:'儲存',
+    validate:name => dup(name, f.node),
+    onOk:name => { f.node.name = name; },
+  });
+}
+function openAssign(ids, batchName){
+  const c = ROSTER.find(x => x.id === ids[0]);
+  const cur = batchName ? [] : posOf(c.id);
+  const org = ORGS.find(o => o.id === c.org);
+  dlg.replaceChildren(
+    h('h2',{textContent: batchName ? `分配「${batchName}」${ids.length} ${UNIT}` : `分配「${c.name}」`}),
+    h('p',{className:'msg',textContent: batchName ? org.src : `${org.name}｜${c.lead?'主管級｜':''}${c.src}`}),
+    batchName ? null : h('p',{className:'msg',textContent:`可以兼多個位置，點一下加入，再點一下取消。目前 ${cur.length} 個。`}),
+    h('div',{className:'tgts'}, allTargets().map(t => {
+      const n = cardsAt(t.id).length, on = cur.includes(t.id);
+      return h('button',{type:'button',className:'tgt'+(t.depth?'':' top')+(on?' cur':''),
+        style:`padding-left:${12+t.depth*16}px`, ...(batchName ? {} : {ariaPressed:String(on)}),
+        on:{click:()=> batchName ? assign(ids,t.id) : togglePos(c.id,t.id)}},
+        h('span',{textContent:t.name}),
+        h('em',{textContent:on ? '✓ 已分配' : (n ? n+' '+UNIT : '')}));
+    })),
+    cur.length ? h('button',{type:'button',className:'back',textContent:'全部移回報到區',on:{click:()=>assign(ids,null)}}) : null,
+    h('div',{className:'btns'},
+      batchName ? h('button',{type:'button',className:'btn',textContent:'取消',on:{click:closeDlg}})
+                : h('button',{type:'button',className:'btn pri',textContent:'完成',on:{click:closeDlg}}))
+  );
+  if(!dlg.open) dlg.showModal();
+}
+function openRenameIC(){
+  nameDialog({
+    title:'更改名稱',
+    value:state.icName,
+    okText:'儲存',
+    validate:() => '',
+    onOk:name => { state.icName = name; },
+  });
+}
+function openReset(){
+  dlg.replaceChildren(
+    h('h2',{textContent:'全部重來？'}),
+    h('p',{className:'msg',textContent:'回到第 1 階段，架構恢復基本版，所有階段的分配都清除。'}),
+    h('div',{className:'btns'},
+      h('button',{type:'button',className:'btn',textContent:'取消',on:{click:closeDlg}}),
+      h('button',{type:'button',className:'btn dng',textContent:'重設',on:{click:()=>{
+        const snap = JSON.stringify(state);
+        state = defaults(); closeDlg(); commit();
+        toast('已重設', () => { state = JSON.parse(snap); commit(); });
+      }}}))
+  );
+  dlg.showModal();
+}
+
+document.querySelector('.hdr p').textContent = SC.intro;
+render();
+</script>
+</body>
+</html>
