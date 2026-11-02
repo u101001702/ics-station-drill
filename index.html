@@ -99,6 +99,13 @@ button{cursor:pointer;background:none;border:none;touch-action:manipulation}
 .stages{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;margin:0 -16px 10px;
   padding:8px 16px;background:var(--bg)}
 .stages>span{flex:none;font-size:13px;font-weight:600;color:var(--muted)}
+.tasks{display:flex;gap:8px;margin-top:10px}
+.task-b{flex:1;min-width:0;min-height:52px;padding:6px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);text-align:left;line-height:1.3}
+.task-b b{display:block;font-size:13px;color:var(--muted)}
+.task-b span{display:block;font-size:15px;font-weight:700}
+.task-b:hover{border-color:var(--ink)}
+.task-b.cur{border-color:var(--ic);background:var(--ic-bg);color:var(--ic)}
+.task-b.cur b{color:var(--ic)}
 .stg{flex:1;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:9px;background:var(--card);font-size:15px;font-weight:600}
 .stg.wide{flex:1.5}
 .stg:hover:enabled{border-color:var(--ink)}
@@ -118,6 +125,15 @@ button{cursor:pointer;background:none;border:none;touch-action:manipulation}
 .dbf dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;font-size:15px}
 .dbf dt{color:var(--muted)}
 .dbf dd{font-weight:600}
+.ref{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.ref h3{font-size:16px;font-weight:700}
+.ref>p{font-size:13px;color:var(--muted);margin:3px 0 6px}
+.ref details{border-top:1px solid var(--line)}
+.ref summary{min-height:44px;display:flex;align-items:center;font-size:15px;font-weight:600;cursor:pointer}
+.ref-n{font-size:13px;color:var(--muted);margin-bottom:6px}
+.ref-l{font-size:14px;padding-top:2px;padding-bottom:2px;overflow-wrap:anywhere}
+.ref-l.top{font-weight:600;margin-top:4px}
+.ref details[open]{padding-bottom:10px}
 .tray-done{font-size:14px;color:var(--muted)}
 .tray-note{font-size:12px;color:var(--muted);margin-top:8px}
 
@@ -185,6 +201,18 @@ dialog input:focus{outline:none;border-color:var(--ic)}
 
 <script>
 'use strict';
+/* 兩個任務共用同一頁，各自存進度。網址加 #taroko 或 #station 可直接開指定任務 */
+const TASKS = [
+  {id:'train',   hash:'taroko',  name:'任務一', sub:'太魯閣事件'},
+  {id:'station', hash:'station', name:'任務二', sub:'風災緊急醫療站'},
+];
+const TASK_KEY = 'ics-task';
+const SCENARIO = (() => {
+  const byHash = TASKS.find(t => t.hash === location.hash.slice(1));
+  if(byHash) return byHash.id;
+  try{ const saved = localStorage.getItem(TASK_KEY); if(TASKS.some(t => t.id === saved)) return saved; }catch(e){}
+  return TASKS[0].id;
+})();
 const MAX_DEPTH = 5;   // 大組以下最多五層，再深手機上放不下
 const MAX_NAME = 20;
 
@@ -199,13 +227,203 @@ const BASE_SECTIONS = [
   {id:'log',  name:'後勤組',     en:'Logistics',         c:'log'},
   {id:'fin',  name:'財務行政組', en:'Finance / Admin',   c:'fin'},
 ];
-const SUGGEST_BY_PARENT = [
+const TRAIN_SUGGEST = {
+  ops:  ['搜救組','醫療組','待命區','治安交管組','工程組'],
+  plan: ['資源單位','狀況單位','文件單位','復員單位'],
+  log:  ['通訊單位','補給單位','設施單位','膳食單位','救災人員醫務','地面支援'],
+  fin:  ['時數紀錄','採購單位','理賠單位','成本單位'],
+};
+const SUGGEST_BY_PARENT = [   // 由上往下找第一個符合的，分部要排在「搜救」「醫療」前面
+  [/搜救分部/, ['搜救組','重機具組','鐵路搶修組']],
+  [/醫療與關懷/, ['醫療組','遺體處理組','家屬服務組']],
+  [/交通與秩序/, ['接駁組','治安交管組']],
   [/醫療站/, ['重症','中症','輕症']],
   [/醫療/, ['檢傷','醫療站','重症','中症','輕症','後送官']],
   [/搜救/, ['搜索組','救援組']],
   [/搜索組/, ['搜索一組','搜索二組','搜索三組']],
   [/救援組/, ['救援一組','救援二組','救援三組']],
 ];
+
+/* 單位卡：1 張＝1 個角色或小隊，不代表實際人數。身份（ORGS）來自 408 報告，
+   底下的角色多為教學設定，出處寫在 src */
+const TRAIN_ORGS = [
+  // 第 1 階段
+  {id:'hlfd', name:'花蓮縣消防局', t:'fire', phase:1, src:'報告 p.93：09:42 首批到場；第一梯次 3 人為授課教師提供（p.88 車長回憶約 5 人）', roles:[
+    ['花蓮第一分隊 EMT-P',{real:1}], ['花蓮第一分隊 EMT-2 甲',{real:1}], ['花蓮第一分隊 EMT-2 乙',{real:1}],
+    ['花蓮第二分隊',{lead:1,phase:2}], ['花蓮第三分隊',{lead:1,phase:2}], ['花蓮消防大隊長',{lead:1,phase:2}],
+    ['花蓮第四分隊',{lead:1,phase:3}], ['花蓮第五分隊',{lead:1,phase:3}], ['花蓮消防局局長',{lead:1,phase:3}] ]},
+  // 第 2 階段
+  {id:'crew', name:'408 次車組員與站務', t:'rail', phase:2, src:'報告 p.87–88、176', roles:[
+    ['408 次車車長',{lead:1,real:1}], ['和仁站值班站長',{real:1}] ]},
+  {id:'hlhb', name:'花蓮縣衛生局', t:'med', phase:2, src:'報告 p.73：09:46 獲報，09:57 開設事件', roles:[
+    ['衛生局帶隊主管',{lead:1}], ['緊急醫療承辦人'], ['醫院聯絡窗口'] ]},
+  {id:'dmat', name:'醫療救護隊', t:'med', phase:2, src:'報告 p.73：衛生局調派至現場', roles:[
+    ['領隊醫師',{lead:1}], ['檢傷護理師'], ['急救護理師'], ['救護技術員'] ]},
+  {id:'amb', name:'民間救護車', t:'med', phase:2, src:'報告 p.73：衛生局動員', roles:[
+    ['救護車調度員',{lead:1}], ['民間救護車第一組'], ['民間救護車第二組'] ]},
+  {id:'tra', name:'花蓮運務段', t:'rail', phase:2, src:'報告 p.88：段長到場後接手車長的現場指揮權，時間未載明', roles:[
+    ['花蓮運務段段長',{lead:1,real:1}], ['運務段站務人員'], ['旅客服務人員'] ]},
+  {id:'pol', name:'花蓮縣警察局', t:'police', phase:2, src:'教學設定：報告未描述', roles:[
+    ['警察分局帶隊官',{lead:1}], ['交通管制小隊'], ['現場封鎖小隊'], ['身分查證小隊'] ]},
+  // 第 3 階段
+  {id:'tp', name:'臺北市消防局', t:'fire', phase:3, src:'報告 p.93：09:54 通報支援', roles:[
+    ['臺北帶隊官',{lead:1}], ['臺北救助隊'], ['臺北救護隊'] ]},
+  {id:'ntp', name:'新北市消防局', t:'fire', phase:3, src:'報告 p.93：09:54 通報支援', roles:[
+    ['新北帶隊官',{lead:1}], ['新北救助隊'], ['新北救護隊'] ]},
+  {id:'kl', name:'基隆市消防局', t:'fire', phase:3, src:'報告 p.93：09:54 通報支援', roles:[
+    ['基隆帶隊官',{lead:1}], ['基隆救助隊'], ['基隆救護隊'] ]},
+  {id:'il', name:'宜蘭縣消防局', t:'fire', phase:3, src:'報告 p.93：09:54 通報支援', roles:[
+    ['宜蘭帶隊官',{lead:1}], ['宜蘭救助隊'], ['宜蘭救護隊'] ]},
+  {id:'usar', name:'特種搜救人員', t:'fire', phase:3, src:'報告 p.93：集結前往救援，所屬未載明', roles:[
+    ['特搜隊長',{lead:1}], ['特搜破壞組'], ['特搜狹窄空間組'] ]},
+  {id:'eoc', name:'花蓮縣災害應變中心', t:'gov', phase:3, src:'報告 p.73：10:38 成立', roles:[
+    ['應變中心指揮官',{lead:1}], ['前進協調官'], ['新聞聯繫員'], ['災情資料紀錄員'], ['傷患名單彙整員'],
+    ['物資補給承辦'], ['通訊架設人員'], ['採購承辦'], ['經費與工時紀錄員'],
+    ['計劃組長',{lead:1}], ['後勤組長',{lead:1}], ['財務行政組長',{lead:1}], ['資源報到員'] ]},
+  {id:'shut', name:'臺鐵接駁列車', t:'rail', phase:3, src:'報告 p.88：由隧道南端載運人員與傷者', roles:[
+    ['接駁列車值乘組'], ['接駁列車協調員'] ]},
+  {id:'bus', name:'遊覽車接駁', t:'rail', phase:3, src:'報告 p.88：10:33 啟動，7 車次約 230 人', roles:[
+    ['公路接駁協調員',{lead:1}], ['遊覽車隊'] ]},
+  {id:'mil', name:'國軍部隊', t:'mil', phase:3, src:'教學設定：報告未描述', roles:[
+    ['國軍帶隊連長',{lead:1}], ['國軍第一排'], ['國軍第二排'], ['國軍運輸組'] ]},
+  // 第 4 階段
+  {id:'psy', name:'心理關懷人員', t:'med', phase:4, src:'報告 p.73：12:00 花蓮車站救護站', roles:[
+    ['心理關懷督導',{lead:1}], ['心理師'], ['社工師'] ]},
+  {id:'dpo', name:'地檢署與法醫師', t:'gov', phase:4, src:'報告 p.73：花蓮地檢署負責相驗，他署支援', roles:[
+    ['檢察官',{lead:1}], ['法醫師'], ['檢驗人員'] ]},
+  {id:'hvy', name:'重機具工程隊', t:'civ', phase:4, src:'報告 p.94：移動轉向架，業者未載明', roles:[
+    ['工程隊現場主任',{lead:1}], ['吊車操作手'], ['怪手操作手'] ]},
+  {id:'rep', name:'臺鐵工程搶修隊', t:'rail', phase:4, src:'教學設定：報告未描述', roles:[
+    ['搶修領班',{lead:1}], ['工務搶修班'], ['電務搶修班'] ]},
+  {id:'vol', name:'民間志工', t:'civ', phase:4, src:'教學設定：報告只寫「民間人員」', roles:[
+    ['志工隊長',{lead:1}], ['物資志工組'], ['膳食志工組'], ['家屬陪伴志工組'] ]},
+];
+/* 階段內容：只寫當下知道的事，傷亡總數留到回顧才出現，時間與事件取自 408 報告 */
+const TRAIN_PHASES = [
+  {time:'09:28–09:42', title:'第一梯次到場，只有 3 人',
+   text:'408 次太魯閣號載 498 人，在清水隧道北口附近撞上滑落軌道的大貨車，8 節全部出軌。第 4 至 8 車內照明全熄。09:35 消防接獲民眾報案，09:42 第一梯次 3 人到場（1 名 EMT-P、2 名 EMT-2），回報有大量傷病患。',
+   task:'3 個人怎麼分工？誰先當事故指揮官？真的需要開全部的組嗎？'},
+  {time:'09:46 起', title:'衛生體系啟動',
+   text:'09:46 衛生局獲報，09:57 開設事件並通知 4 家醫院。10:01 隧道北口外設立檢傷站、救護站與前進指揮站。花蓮運務段段長到場。',
+   task:'更高階的主管到了，指揮權要不要交接？檢傷、救護、後送由誰負責？'},
+  {time:'09:54 起', title:'外縣市支援湧入',
+   text:'臺北、新北、基隆、宜蘭消防與特種搜救人員陸續前來。10:33 臺鐵啟動遊覽車接駁，10:38 縣府成立災害應變中心。部分乘客仍受困在隧道內的車廂。',
+   task:'單位一多，一個人帶得動嗎？怎麼加子組別？新到的單位先去哪裡報到？'},
+  {time:'11:39 起', title:'轉入長時間作業',
+   text:'現場救護站、花蓮車站、崇德車站（後由新城車站取代）陸續設立救護站。傍晚起分組逐車清查，另有相驗與重機具作業，救災要持續好幾天。',
+   task:'計劃、後勤、財務行政開了嗎？救災人員的輪替、膳食、家屬與遺體處理誰負責？'},
+];
+const TRAIN_DEBRIEF = [
+  ['車載人數','498 人'],['死亡','49 人'],['重傷／中傷／輕傷','3／16／194 人'],['無傷','236 人'],
+  ['花蓮消救與民間','333 人、54 車'],['外縣市支援','414 人、85 車'],['累計投入','6,288 人次'],['救災結束','4 月 7 日 06:00'],
+];
+/* 回顧頁的參考排法，每行開頭兩個空格代表下一層 */
+const TRAIN_REF = [
+  {title:'第 1 階段：3 個單位', note:'指揮官先兼所有職務，不開用不到的組。', lines:[
+    '事故指揮官：花蓮第一分隊 EMT-P（暫代）',
+    '執行組',
+    '  檢傷：花蓮第一分隊 EMT-2 甲',
+    '  傷患集中點：花蓮第一分隊 EMT-2 乙',
+  ]},
+  {title:'第 2 階段：25 個單位', note:'第一次指揮權交接，醫療分工成形。', lines:[
+    '事故指揮官：花蓮消防大隊長',
+    '安全官：花蓮第三分隊',
+    '聯絡官：花蓮運務段段長、衛生局帶隊主管',
+    '執行組（組長由指揮官暫兼）',
+    '  搜救組：花蓮第二分隊',
+    '  醫療組：領隊醫師',
+    '    檢傷：檢傷護理師、花蓮第一分隊 EMT-P、花蓮第一分隊 EMT-2 甲',
+    '    醫療站：急救護理師、救護技術員、花蓮第一分隊 EMT-2 乙',
+    '    後送官：救護車調度員、民間救護車第一組、民間救護車第二組、醫院聯絡窗口、緊急醫療承辦人',
+    '  乘客疏散組：408 次車車長、和仁站值班站長、運務段站務人員、旅客服務人員',
+    '  治安交管組：警察分局帶隊官、交通管制小隊、現場封鎖小隊、身分查證小隊',
+  ]},
+  {title:'第 3 階段：64 個單位', note:'第二次指揮權交接，分層、設待命區、四大組全開。', lines:[
+    '事故指揮官：花蓮消防局局長',
+    '安全官：花蓮第三分隊',
+    '聯絡官：花蓮運務段段長、衛生局帶隊主管、應變中心指揮官、前進協調官',
+    '媒體官：新聞聯繫員',
+    '執行組：花蓮消防大隊長',
+    '  搜救組：特搜隊長',
+    '    搜索組：臺北帶隊官',
+    '      搜索一組：臺北救助隊',
+    '      搜索二組：基隆救助隊',
+    '      搜索三組：花蓮第四分隊',
+    '    救援組：新北帶隊官、花蓮第二分隊',
+    '      救援一組：新北救助隊',
+    '      救援二組：特搜破壞組',
+    '      救援三組：特搜狹窄空間組',
+    '  醫療組：領隊醫師',
+    '    檢傷：檢傷護理師、花蓮第一分隊 EMT-P、花蓮第一分隊 EMT-2 甲',
+    '    醫療站：基隆帶隊官',
+    '      重症：臺北救護隊、急救護理師',
+    '      中症：新北救護隊、救護技術員',
+    '      輕症：基隆救護隊、花蓮第一分隊 EMT-2 乙',
+    '    後送官：救護車調度員、民間救護車第一組、民間救護車第二組、醫院聯絡窗口、緊急醫療承辦人',
+    '  乘客疏散組：408 次車車長、和仁站值班站長、運務段站務人員、旅客服務人員',
+    '  傷患搬運組：國軍帶隊連長、國軍第一排、國軍第二排',
+    '  接駁組：公路接駁協調員、遊覽車隊、接駁列車協調員、接駁列車值乘組、國軍運輸組',
+    '  治安交管組：警察分局帶隊官、交通管制小隊、現場封鎖小隊、身分查證小隊',
+    '  待命區：宜蘭帶隊官、宜蘭救助隊、宜蘭救護隊、花蓮第五分隊',
+    '計劃組：計劃組長',
+    '  資源單位：資源報到員',
+    '  狀況單位：災情資料紀錄員',
+    '  文件單位：傷患名單彙整員',
+    '後勤組：後勤組長',
+    '  補給單位：物資補給承辦',
+    '  通訊單位：通訊架設人員',
+    '財務行政組：財務行政組長',
+    '  採購單位：採購承辦',
+    '  時數單位：經費與工時紀錄員',
+  ]},
+  {title:'第 4 階段：80 個單位', note:'組織也會縮：解散疏散與搬運組，組別太多就開分部。', lines:[
+    '事故指揮官：花蓮消防局局長',
+    '安全官：花蓮第三分隊',
+    '聯絡官：花蓮運務段段長、衛生局帶隊主管、應變中心指揮官、前進協調官',
+    '媒體官：新聞聯繫員',
+    '執行組：花蓮消防大隊長',
+    '  搜救分部',
+    '    搜救組：特搜隊長、國軍帶隊連長、國軍第一排、國軍第二排',
+    '      搜索組（轉逐車清查）：臺北帶隊官、臺北救助隊、基隆救助隊、花蓮第四分隊',
+    '      救援組：新北帶隊官、花蓮第二分隊、新北救助隊、特搜破壞組、特搜狹窄空間組',
+    '    重機具組：工程隊現場主任、吊車操作手、怪手操作手',
+    '    鐵路搶修組：搶修領班、工務搶修班、電務搶修班（搜救結束才能作業）',
+    '  醫療與關懷分部',
+    '    醫療組（逐步縮編）：領隊醫師',
+    '      檢傷：檢傷護理師、花蓮第一分隊 EMT-P、花蓮第一分隊 EMT-2 甲',
+    '      醫療站：基隆帶隊官、臺北救護隊、急救護理師、新北救護隊、救護技術員、基隆救護隊、花蓮第一分隊 EMT-2 乙',
+    '      後送官：救護車調度員、民間救護車第一組、民間救護車第二組、醫院聯絡窗口、緊急醫療承辦人',
+    '    遺體處理組：檢察官、法醫師、檢驗人員',
+    '    家屬服務組：心理關懷督導、心理師、社工師、家屬陪伴志工組、旅客服務人員',
+    '  交通與秩序分部',
+    '    接駁組：公路接駁協調員、遊覽車隊、接駁列車協調員、接駁列車值乘組、國軍運輸組、408 次車車長、和仁站值班站長、運務段站務人員',
+    '    治安交管組：警察分局帶隊官、交通管制小隊、現場封鎖小隊、身分查證小隊',
+    '  待命區：宜蘭帶隊官、宜蘭救助隊、花蓮第五分隊',
+    '計劃組：計劃組長',
+    '  資源單位：資源報到員',
+    '  狀況單位：災情資料紀錄員',
+    '  文件單位：傷患名單彙整員',
+    '  復員單位：由組長兼，規劃輪替與撤收',
+    '後勤組：後勤組長',
+    '  補給單位：物資補給承辦、物資志工組、志工隊長',
+    '  膳食單位：膳食志工組',
+    '  通訊單位：通訊架設人員',
+    '  救災人員醫務單位：宜蘭救護隊',
+    '財務行政組：財務行政組長',
+    '  採購單位：採購承辦',
+    '  時數單位：經費與工時紀錄員',
+  ]},
+];
+/* 太魯閣各階段可用的子分組。沒列到的大組該階段不能加子分組 */
+const TRAIN_SUBS = [
+  {ops:['檢傷','傷患集中點']},
+  {ops:['搜救組','醫療組','乘客疏散組','治安交管組']},
+  {ops:['搜救組','醫療組','乘客疏散組','傷患搬運組','接駁組','治安交管組','待命區'],
+   plan:['資源單位','狀況單位','文件單位'], log:['補給單位','通訊單位'], fin:['採購單位','時數單位']},
+  {ops:['搜救分部','醫療與關懷分部','交通與秩序分部','待命區'],
+   plan:['資源單位','狀況單位','文件單位','復員單位'], log:['補給單位','膳食單位','通訊單位','救災人員醫務單位'], fin:['採購單位','時數單位']},
+];
+const TRAIN_TYPES = {fire:'消防',med:'醫療衛生',police:'警政',mil:'國軍',rail:'鐵路',gov:'政府機關',civ:'民間'};
 
 /* 緊急醫療站情境：1 張卡＝1 個人。沒有指定主管，由學員自己決定誰帶隊 */
 const STATION_ORGS = [
@@ -243,7 +461,15 @@ const STATION_DEBRIEF = [
   ['醫師','3 人'],['護理師','7 人'],['EMT-P','2 人'],['EMT','6 人'],['行政人員','2 人'],['替代役','1 人'],['水電後勤','2 人'],
   ['指引最低人力','白班 13 人、夜班 4 人'],
 ];
-const SC = {
+const SC = SCENARIO === 'train' ? {
+  key:'ics-teach-v5',   // 換名單時要改版，避免舊卡片 id 對到新單位
+  orgs:TRAIN_ORGS, phases:TRAIN_PHASES, debrief:TRAIN_DEBRIEF, types:TRAIN_TYPES, suggest:TRAIN_SUGGEST, stageSubs:TRAIN_SUBS, ref:TRAIN_REF, askStaging:true,
+  ic:'事故指揮官', unit:'個單位', per:'個', useLead:true, longFrom:4,
+  intro:'隨著事故發展，把陸續報到的單位分配到適合的組別。分配沒有唯一解答。',
+  timeNote:'（階段切分為教學安排）', endBtn:'結束演練，看真實數字', dbfTitle:'回顧：真實的數字',
+  dbfText:'你的架構能撐得起這個規模嗎？資料來源：運安會 408 次事實資料報告 p.6、94。',
+  trayNote:'1 張卡＝1 個角色或小隊，不代表實際人數。身份來自事故報告，底下的角色多為教學設定。',
+} : {
   key:'ics-station-v1',
   orgs:STATION_ORGS, phases:STATION_PHASES, debrief:STATION_DEBRIEF, types:{med:'醫療衛生',fire:'消防',civ:'民間'},
   stageSubs:STATION_SUBS,
@@ -396,7 +622,8 @@ function renderScenario(){
   if(state.phase > PHASES.length) return h('section',{className:'dbf'},
     h('h2',{textContent:SC.dbfTitle}),
     h('p',{textContent:SC.dbfText}),
-    h('dl',{}, DEBRIEF.flatMap(([k,v]) => [h('dt',{textContent:k}), h('dd',{textContent:v})])));
+    h('dl',{}, DEBRIEF.flatMap(([k,v]) => [h('dt',{textContent:k}), h('dd',{textContent:v})])),
+    renderRef());
   const ph = PHASES[state.phase-1];
   const last = state.phase === PHASES.length;
   return h('section',{className:'scn',ariaLabel:'事故狀況'},
@@ -407,6 +634,20 @@ function renderScenario(){
     h('p',{className:'task',textContent:ph.task}),
     h('button',{type:'button',className:'next',textContent:last ? SC.endBtn : '進入下一階段',
       on:{click:()=>goPhase(state.phase+1)}}));
+}
+/* 參考排法只放回顧頁，預設收合，避免學員演練時照抄 */
+function renderRef(){
+  if(!SC.ref) return null;
+  return h('div',{className:'ref'},
+    h('h3',{textContent:'一種參考排法'}),
+    h('p',{textContent:'不是標準答案，也不是真實事故當天的編組。ICS 層級依 FEMA，人員安排為教學建議，和你的排法比較看看差在哪裡。'}),
+    SC.ref.map(r => h('details',{},
+      h('summary',{textContent:r.title}),
+      h('p',{className:'ref-n',textContent:r.note}),
+      r.lines.map(l => {
+        const depth = (l.length - l.trimStart().length) / 2;
+        return h('div',{className:'ref-l'+(depth?'':' top'),style:`padding-left:${depth*14}px`,textContent:l.trim()});
+      }))));
 }
 /* 階段切換列：走過的階段都能點；還沒到的鎖住，避免提前看到後面的情境與真實數字 */
 function renderStages(){
@@ -734,6 +975,22 @@ function openReset(){
 }
 
 document.querySelector('.hdr p').textContent = SC.intro;
+/* 切換任務：記住選擇後重新載入，兩個任務的進度各自保留 */
+function switchTask(t){
+  if(t.id === SCENARIO) return;
+  try{ localStorage.setItem(TASK_KEY, t.id); }catch(e){}
+  location.hash = t.hash;
+  location.reload();
+}
+// 頁面開著時直接改網址的 #，也要換到對應任務
+addEventListener('hashchange', () => {
+  const t = TASKS.find(x => x.hash === location.hash.slice(1));
+  if(t && t.id !== SCENARIO){ try{ localStorage.setItem(TASK_KEY, t.id); }catch(e){} location.reload(); }
+});
+document.querySelector('.hdr').append(h('nav',{className:'tasks',ariaLabel:'選擇任務'},
+  TASKS.map(t => h('button',{type:'button',className:'task-b'+(t.id === SCENARIO ? ' cur' : ''),
+    ariaPressed:String(t.id === SCENARIO), on:{click:()=>switchTask(t)}},
+    h('b',{textContent:t.name}), h('span',{textContent:t.sub})))));
 render();
 </script>
 </body>
