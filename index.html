@@ -106,6 +106,46 @@ button{cursor:pointer;background:none;border:none;touch-action:manipulation}
 .task-b:hover{border-color:var(--ink)}
 .task-b.cur{border-color:var(--ic);background:var(--ic-bg);color:var(--ic)}
 .task-b.cur b{color:var(--ic)}
+.chart{margin-top:18px}
+.tree{--ln:#bdb9ae;overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 8px 12px;overscroll-behavior-x:contain}
+.tree-in{width:max-content;margin:0 auto}
+.upper{display:flex;flex-direction:column;align-items:center;width:max-content}
+/* 幕僚：主幹從指揮官往下，幕僚分列兩側 */
+.band{display:grid;grid-template-columns:1fr 2px 1fr;row-gap:8px}
+.trunk{grid-column:2;grid-row:1/-1;background:var(--ln)}
+.st-cell{display:flex;align-items:center}
+.st-cell.l{grid-column:1;justify-self:end}
+.st-cell.r{grid-column:3;justify-self:start}
+.st-cell.l::after,.st-cell.r::before{content:"";width:16px;height:2px;background:var(--ln);flex:none}
+.st-cell .tn{width:170px}
+/* 大組橫排：classic 組織圖連線 */
+.ht{display:flex;position:relative;margin:0;padding:16px 0 0;width:max-content}
+.rowa::before{content:"";position:absolute;top:0;left:50%;height:16px;border-left:2px solid var(--ln)}
+.hl{list-style:none;position:relative;display:flex;flex-direction:column;align-items:center;padding:16px 5px 0;width:200px}
+.hl::before,.hl::after{content:"";position:absolute;top:0;right:50%;width:50%;height:16px;border-top:2px solid var(--ln)}
+.hl::after{right:auto;left:50%;border-left:2px solid var(--ln)}
+.hl:only-child::before,.hl:only-child::after{display:none}
+.hl:first-child::before,.hl:last-child::after{border:0}
+.hl:last-child::before{border-right:2px solid var(--ln);border-radius:0 6px 0 0}
+.hl:first-child::after{border-radius:6px 0 0 0}
+.hl>.tn{align-self:stretch}
+.trunk-down{flex:1;width:2px;min-height:12px;background:var(--ln)}
+/* 組內子組別：直向分支 */
+.vt{align-self:stretch;margin:0 0 0 14px;padding:0}
+.vl{list-style:none;position:relative;padding:8px 0 0 14px;border-left:2px solid var(--ln)}
+.vl:last-child{border-left-color:transparent}
+.vl::before{content:"";position:absolute;left:-2px;top:0;width:12px;height:24px;border-left:2px solid var(--ln);border-bottom:2px solid var(--ln);border-radius:0 0 0 6px}
+.tn{background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:6px 9px;text-align:left;overflow-wrap:anywhere}
+.vl>.tn{border-left:4px solid var(--c,var(--line))}
+.tn.sub-n{border-top:4px solid var(--c)}
+.tn-n{font-weight:700;font-size:14px}
+.tn-p{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
+.tn-p span{display:block}
+.tn.ic-n{min-width:170px;text-align:center;border-color:var(--ic);background:var(--ic-bg);color:var(--ic)}
+.tn.sec-n{border-color:var(--c);border-top-width:4px;background:var(--cb)}
+.tn.sec-n .tn-n{color:var(--c)}
+.tn.staff-n{background:var(--staff-bg);border-color:#c9c6bd;color:var(--staff)}
+.tree-hint{font-size:12px;color:var(--muted);margin-top:6px}
 .stg{flex:1;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:9px;background:var(--card);font-size:15px;font-weight:600}
 .stg.wide{flex:1.5}
 .stg:hover:enabled{border-color:var(--ink)}
@@ -705,10 +745,48 @@ function renderTray(){
     h('p',{className:'tray-note',textContent:SC.trayNote}));
 }
 
+/* ---------- ICS 架構圖：照目前的組別與分配自動畫出，不能在圖上編輯 ---------- */
+function treeNode(name, id, cls, style){
+  const cards = id ? cardsAt(id) : [];
+  return h('div',{className:'tn'+(cls?' '+cls:''),style:style||''},
+    h('div',{className:'tn-n',textContent:name}),
+    cards.length ? h('div',{className:'tn-p'}, cards.map(c => h('span',{textContent:c.name}))) : null);
+}
+function treeList(kids){
+  return kids.length ? h('ul',{className:'vt'}, kids.map(k =>
+    h('li',{className:'vl'}, treeNode(k.name, k.id), treeList(k.children || [])))) : null;
+}
+const WIDE_MIN = 4;   // 執行組底下達到這麼多組時，改成在各大組下方橫向展開
+function renderChart(){
+  const secStyle = sec => { const c = BASE_SECTIONS.find(b => b.id === sec.id).c; return `--c:var(--${c});--cb:var(--${c}-bg)`; };
+  const ops = state.sections.find(s => s.id === 'ops');
+  const wide = ops && ops.children.length >= WIDE_MIN;
+  const rows = Math.ceil(state.staff.length / 2);
+  const band = rows ? h('div',{className:'band',style:`grid-template-rows:10px repeat(${rows},auto) 4px`},
+    h('div',{className:'trunk'}),
+    state.staff.map((s,i) => h('div',{className:'st-cell '+(i % 2 ? 'r' : 'l'),style:`grid-row:${Math.floor(i/2)+2}`},
+      treeNode(s.name, s.id, 'staff-n')))) : null;
+  const cols = state.sections.map(sec => h('li',{className:'hl',style:secStyle(sec)},
+    treeNode(sec.name, sec.id, 'sec-n'),
+    wide && sec === ops ? h('div',{className:'trunk-down'}) : treeList(sec.children)));
+  const lower = wide ? h('ul',{className:'ht',style:secStyle(ops)}, ops.children.map(k =>
+    h('li',{className:'hl'}, treeNode(k.name, k.id, 'sub-n'), treeList(k.children || [])))) : null;
+  return h('section',{className:'chart',ariaLabel:'ICS 架構圖'},
+    h('p',{className:'lbl',textContent:'ICS 架構圖（依你的分配自動更新）'}),
+    h('div',{className:'tree',id:'tree'}, h('div',{className:'tree-in'},
+      h('div',{className:'upper'},
+        treeNode(state.icName, 'ic', 'ic-n'),
+        band,
+        cols.length ? h('ul',{className:'ht rowa'}, cols) : null),
+      lower)),
+    h('p',{className:'tree-hint',textContent:'圖比畫面寬時，可以在框內左右滑動。'}));
+}
+
 /* ---------- 畫面 ---------- */
 function render(){
   const app = document.getElementById('app');
   const trayScroll = document.getElementById('trayList')?.scrollTop || 0;
+  const treeScroll = document.getElementById('tree')?.scrollLeft;   // 第一次畫時置中，之後保持使用者滑到的位置
   app.replaceChildren();
 
   app.append(renderStages());
@@ -756,10 +834,18 @@ function render(){
     ));
   }
 
+  app.append(renderChart());
+  const tree = document.getElementById('tree');
+
   app.append(h('div',{className:'foot'},
     h('button',{type:'button',className:'ghost',textContent:'全部重來',on:{click:openReset}})));
 
   if(tl) tl.scrollTop = trayScroll;
+  if(treeScroll != null) tree.scrollLeft = treeScroll;
+  else {   // 第一次畫：讓指揮官置中
+    const ic = tree.querySelector('.ic-n').getBoundingClientRect(), box = tree.getBoundingClientRect();
+    tree.scrollLeft = ic.left + ic.width/2 - box.left - tree.clientWidth/2;
+  }
 }
 
 function renderSection(sec){
