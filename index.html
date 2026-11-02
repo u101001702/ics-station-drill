@@ -273,12 +273,19 @@ const TRAIN_SUGGEST = {
   log:  ['通訊單位','補給單位','設施單位','膳食單位','救災人員醫務','地面支援'],
   fin:  ['時數紀錄','採購單位','理賠單位','成本單位'],
 };
-const SUGGEST_BY_PARENT = [   // 由上往下找第一個符合的，分部要排在「搜救」「醫療」前面
+const MED_UNITS = ['檢傷','重症','中症','輕症','留觀','後送','搬運','藥局'];
+/* 太魯閣第 3 階段起，醫療組改分成多個醫療站 */
+const MED_STATIONS = ['主醫療站','運送組（火車監測）','第二醫療站（吉安火車站）','第三醫療站（花蓮車站後站）'];
+/* 子組別底下的選項：由上往下找第一個符合的，所以越特定的名稱要排越前面。
+   值是 null 代表這一層不能再往下加；也可以是函式，依任務與階段回傳不同選項 */
+const SUGGEST_BY_PARENT = [
+  [/第[二三]醫療站/, null],
+  [/主醫療站/, MED_UNITS],
   [/搜救分部/, ['搜救組','重機具組','鐵路搶修組']],
   [/醫療與關懷/, ['醫療組','遺體處理組','家屬服務組']],
   [/交通與秩序/, ['接駁組','治安交管組']],
   [/醫療站/, ['重症','中症','輕症']],
-  [/醫療/, ['檢傷','重症','中症','輕症','留觀','後送','搬運','藥局']],
+  [/醫療/, () => SCENARIO === 'train' && state.phase >= 3 ? MED_STATIONS : MED_UNITS],
   [/搜救/, ['搜索組','救援組']],
   [/搜索組/, ['搜索一組','搜索二組','搜索三組']],
   [/救援組/, ['救援一組','救援二組','救援三組']],
@@ -881,7 +888,7 @@ function renderSub(n, depth){
     h('div',{className:'sub-row'},
       h('div',{className:'name',textContent:n.name}),
       h('div',{className:'acts'},
-        depth < MAX_DEPTH ? iconBtn('add','在「'+n.name+'」下新增',()=>openAdd(n.id)) : null,
+        depth < MAX_DEPTH && childOptions(n.name) ? iconBtn('add','在「'+n.name+'」下新增',()=>openAdd(n.id)) : null,
         iconBtn('edit','更改「'+n.name+'」名稱',()=>openRename(n.id)),
         iconBtn('del','刪除「'+n.name+'」',()=>remove(n.id)))),
     peopleRow(n.id,'sub-ppl'),
@@ -892,6 +899,12 @@ function renderSub(n, depth){
 function subsNow(secId){
   if(!SC.stageSubs) return SUGGEST[secId] || [];
   return SC.stageSubs[Math.min(state.phase, SC.stageSubs.length) - 1][secId] || null;
+}
+/* 子組別底下的選項；null 代表不能再往下加，沒有對應規則就是空清單（可自己輸入） */
+function childOptions(name){
+  const hit = SUGGEST_BY_PARENT.find(([re]) => re.test(name));
+  if(!hit) return [];
+  return typeof hit[1] === 'function' ? hit[1]() : hit[1];
 }
 function addBtn(id,label){
   const b = h('button',{type:'button',className:'add',on:{click:()=>openAdd(id)}});
@@ -998,10 +1011,7 @@ function openAdd(parentId){
   const sec = f.parents[0] || f.node;
   let pool = [];
   if(f.depth === 0) pool = subsNow(sec.id) || [];
-  else {
-    const hit = SUGGEST_BY_PARENT.find(([re]) => re.test(f.node.name));
-    if(hit) pool = hit[1];
-  }
+  else pool = childOptions(f.node.name) || [];
   const dup = siblingsOf(kids);
   nameDialog({
     title:'在「'+f.node.name+'」下新增',
