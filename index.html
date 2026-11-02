@@ -740,9 +740,20 @@ function renderTray(){
           h('div',{className:'org-cards'}, cards.map(cardBtn)));
       }))
                 : h('p',{className:'tray-done',textContent:'目前到場的單位都分配完了。'}),
+    Object.keys(state.people).length ? h('button',{type:'button',className:'back',textContent:'全部人員回報到區',
+      on:{click:returnAll}}) : null,
     h('div',{className:'legend'}, Object.keys(TYPE_NAME).map(t =>
       h('span',{style:`--t:var(--t-${t})`}, h('i'), TYPE_NAME[t]))),
     h('p',{className:'tray-note',textContent:SC.trayNote}));
+}
+
+/* 清空目前階段的所有分配，組別保留；其他階段存的進度不動，可用提示列的「復原」還原 */
+function returnAll(){
+  const snap = JSON.stringify(state);
+  const n = Object.keys(state.people).length;
+  state.people = {};
+  commit();
+  toast(`${n} ${UNIT}已回到報到區`, () => { state = JSON.parse(snap); commit(); });
 }
 
 /* ---------- ICS 架構圖：照目前的組別與分配自動畫出，不能在圖上編輯 ---------- */
